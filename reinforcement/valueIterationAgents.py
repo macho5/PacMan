@@ -186,4 +186,44 @@ class PrioritizedSweepingValueIterationAgent(AsynchronousValueIterationAgent):
 
     def runValueIteration(self):
         "*** YOUR CODE HERE ***"
+        predecessors = {}
+        pq = util.PriorityQueue()
 
+        for state in self.mdp.getStates():
+            for action in self.mdp.getPossibleActions(state):
+                for nextState, _ in self.mdp.getTransitionStatesAndProbs(state, action):
+                    if nextState in predecessors:
+                        predecessors[nextState].append(state)
+                    else:
+                        predecessors[nextState] = [state]
+
+        for state in self.mdp.getStates():
+            if not self.mdp.isTerminal(state):
+                maxQValue = -float('inf')
+                for action in self.mdp.getPossibleActions(state):
+                    qValue = self.computeQValueFromValues(state, action)
+                    maxQValue = max(maxQValue, qValue)
+                diff = abs(self.values[state] - maxQValue)
+                pq.update(state, -diff)
+
+        for i in range(self.iterations):
+            if pq.isEmpty():
+                break
+            state = pq.pop()
+            if not self.mdp.isTerminal(state):
+                maxValue = -float('inf')
+                for action in self.mdp.getPossibleActions(state):
+                    qValue = self.computeQValueFromValues(state, action)
+                    maxValue = max(maxValue, qValue)
+                self.values[state] = maxValue
+
+            for p in predecessors[state]:
+                if not self.mdp.isTerminal(p):
+                    maxQValue = -float('inf')
+                    for action in self.mdp.getPossibleActions(p):
+                        qValue = self.computeQValueFromValues(p, action)
+                        maxQValue = max(maxQValue, qValue)
+                    diff = abs(self.values[p] - maxQValue)
+
+                    if diff > self.theta:
+                        pq.update(p, -diff)
